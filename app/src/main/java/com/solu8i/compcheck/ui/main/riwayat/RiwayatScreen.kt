@@ -266,11 +266,30 @@ fun RiwayatItemCard(item: ScanLogItem) {
                         fontSize = 12.sp,
                         color = Color(0xFF6B7280)
                     )
+                    item.contentStatus?.let { status ->
+                        Text(
+                            text = "Isi: ${contentStatusLabel(status)}",
+                            fontSize = 12.sp,
+                            color = Color(0xFF374151)
+                        )
+                    }
+                    item.note?.takeIf { it.isNotBlank() }?.let { note ->
+                        Text(
+                            text = "Catatan: $note",
+                            fontSize = 12.sp,
+                            color = Color(0xFF6B7280)
+                        )
+                    }
                 }
                 StatusBadge(isDone = isDone)
             }
         }
     }
+}
+
+private fun contentStatusLabel(status: String): String = when (status) {
+    "sisa_minyak" -> "Sisa Minyak"
+    else -> status.replaceFirstChar { it.uppercase() }
 }
 
 @Composable

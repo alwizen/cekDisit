@@ -107,30 +107,30 @@ fun LoginScreen(
 
             // Logo / Header
             Image(
-                painter = painterResource(id = R.drawable.logo),
+                painter = painterResource(id = R.drawable.cek),
                 contentDescription = "Logo",
                 modifier = Modifier
-                    .width(250.dp)
-                    .height(165.dp),
+                    .width(370.dp)
+                    .height(150.dp),
                 contentScale = ContentScale.Fit
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "CekDisit",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = colorScheme.onBackground
-            )
-            Text(
-                text = "NFC Compartement Checking",
-                fontSize = 12.sp,
-                color = colorScheme.onSurfaceVariant,
-                letterSpacing = 1.5.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
+//            Spacer(modifier = Modifier.height(12.dp))
+//
+//            Text(
+//                text = "NFC Compartement Checking",
+//                fontSize = 20.sp,
+//                fontWeight = FontWeight.Bold,
+//                color = colorScheme.onBackground
+//            )
+//            Text(
+//                text = "NFC Compartement Checking",
+//                fontSize = 12.sp,
+//                color = colorScheme.onSurfaceVariant,
+//                letterSpacing = 1.5.sp
+//            )
+//
+//            Spacer(modifier = Modifier.height(12.dp))
 
             // Card Tap & Hardware Scanner Hint Badge
             // Box(

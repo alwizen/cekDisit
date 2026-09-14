@@ -11,6 +11,12 @@ data class ScanRequest(
     @SerializedName("rfid_uid")
     val rfidUid: String,
 
+    @SerializedName("content_status")
+    val contentStatus: String,
+
+    @SerializedName("note")
+    val note: String?,
+
     @SerializedName("latitude")
     val latitude: Double?,
 

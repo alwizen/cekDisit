@@ -26,6 +26,12 @@ data class ScanData(
     @SerializedName("compartment")
     val compartment: CompartmentInfoData?,
 
+    @SerializedName("content_status")
+    val contentStatus: String?,
+
+    @SerializedName("note")
+    val note: String?,
+
     @SerializedName("geofence")
     val geofence: GeofenceData?
 )

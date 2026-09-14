@@ -4,6 +4,7 @@ import com.solu8i.compcheck.model.ScanHistoryResponse
 import com.solu8i.compcheck.model.ScanLogItem
 import com.solu8i.compcheck.model.ScanRequest
 import com.solu8i.compcheck.model.ScanResponse
+import com.solu8i.compcheck.model.CompartmentValidationResponse
 import com.solu8i.compcheck.network.RetrofitClient
 import com.solu8i.compcheck.utils.SessionManager
 import retrofit2.Call
@@ -17,9 +18,42 @@ class ScanRepository(private val sessionManager: SessionManager) {
     fun getDriverRole(): String = sessionManager.getDriverRole() ?: "driver"
     fun logout() = sessionManager.logout()
 
+    fun validateCompartment(
+        rfidUid: String,
+        deviceUuid: String,
+        onResult: (Boolean, String) -> Unit
+    ) {
+        val driverId = sessionManager.getDriverId()
+        val baseUrl = sessionManager.getBaseUrl()
+
+        RetrofitClient.getInstance(baseUrl).validateCompartment(rfidUid, driverId, deviceUuid)
+            .enqueue(object : Callback<CompartmentValidationResponse> {
+                override fun onResponse(
+                    call: Call<CompartmentValidationResponse>,
+                    response: Response<CompartmentValidationResponse>
+                ) {
+                    if (response.isSuccessful) {
+                        val body = response.body()
+                        onResult(
+                            body?.success == true,
+                            body?.message ?: "Kompartemen tidak dapat divalidasi"
+                        )
+                    } else {
+                        onResult(false, extractErrorMessage(response))
+                    }
+                }
+
+                override fun onFailure(call: Call<CompartmentValidationResponse>, t: Throwable) {
+                    onResult(false, "Gagal koneksi ke server: ${t.message}")
+                }
+            })
+    }
+
     fun sendScanData(
         deviceUuid: String,
         rfidUid: String,
+        contentStatus: String,
+        note: String?,
         latitude: Double?,
         longitude: Double?,
         onResult: (Boolean, String, ScanResponse?) -> Unit
@@ -31,6 +65,8 @@ class ScanRepository(private val sessionManager: SessionManager) {
             driverId = driverId,
             deviceUuid = deviceUuid,
             rfidUid = rfidUid,
+            contentStatus = contentStatus,
+            note = note,
             latitude = latitude ?: 0.0,
             longitude = longitude ?: 0.0
         )
@@ -45,17 +81,7 @@ class ScanRepository(private val sessionManager: SessionManager) {
                         onResult(false, scanResponse?.message ?: "Gagal scan", scanResponse)
                     }
                 } else {
-                    val errorBody = response.errorBody()?.string()
-                    var errorMessage = "Error Server: ${response.code()}"
-                    if (!errorBody.isNullOrEmpty()) {
-                        try {
-                            val jsonObject = org.json.JSONObject(errorBody)
-                            errorMessage = jsonObject.optString("message", errorMessage)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                    onResult(false, errorMessage, null)
+                    onResult(false, extractErrorMessage(response), null)
                 }
             }
 
@@ -63,6 +89,19 @@ class ScanRepository(private val sessionManager: SessionManager) {
                 onResult(false, "Gagal koneksi ke server: ${t.message}", null)
             }
         })
+    }
+
+    private fun <T> extractErrorMessage(response: Response<T>): String {
+        val fallback = "Error Server: ${response.code()}"
+        val errorBody = response.errorBody()?.string()
+
+        if (errorBody.isNullOrEmpty()) return fallback
+
+        return try {
+            org.json.JSONObject(errorBody).optString("message", fallback)
+        } catch (e: Exception) {
+            fallback
+        }
     }
 
     fun getScanHistory(onResult: (Boolean, String, List<ScanLogItem>?) -> Unit) {

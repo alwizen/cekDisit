@@ -99,6 +99,27 @@ fun ScanResultCard(
                     }
                 }
             }
+
+            scanData.contentStatus?.let { status ->
+                Text(
+                    text = "Isi: ${contentStatusLabel(status)}",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF111827)
+                )
+            }
+            scanData.note?.takeIf { it.isNotBlank() }?.let { note ->
+                Text(
+                    text = "Catatan: $note",
+                    fontSize = 12.sp,
+                    color = Color(0xFF4B5563)
+                )
+            }
         }
     }
+}
+
+private fun contentStatusLabel(status: String): String = when (status) {
+    "sisa_minyak" -> "Sisa Minyak"
+    else -> status.replaceFirstChar { it.uppercase() }
 }

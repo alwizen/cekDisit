@@ -26,11 +26,15 @@ class ScanViewModel(private val repository: ScanRepository) : ViewModel() {
 
     var nfcStatus by mutableStateOf("Tempelkan Kartu NFC")
     var rfidUid by mutableStateOf("")
+    private var rejectedUid: String? = null
+    var contentStatus by mutableStateOf<String?>(null)
+    var note by mutableStateOf("")
     var locationText by mutableStateOf("Mencari GPS...")
     var latitude by mutableStateOf<Double?>(null)
     var longitude by mutableStateOf<Double?>(null)
 
     var isSending by mutableStateOf(false)
+    var isValidating by mutableStateOf(false)
     var lastScanSuccess by mutableStateOf<Boolean?>(null)
     var lastScanResult by mutableStateOf<ScanData?>(null)
 
@@ -55,32 +59,68 @@ class ScanViewModel(private val repository: ScanRepository) : ViewModel() {
         }
     }
 
-    fun onTagDetected(uidHex: String, deviceUuid: String, onResult: ((Boolean, String) -> Unit)? = null) {
-        rfidUid = uidHex
-        nfcStatus = "Kartu Terdeteksi!"
-        lastScanSuccess = null
-        lastScanResult = null
-        resetHandler.removeCallbacks(resetRunnable)
-        kirimDataScan(uidHex, deviceUuid, onResult)
+    fun onTagDetected(uidHex: String, deviceUuid: String) {
+        validateBeforeModal(uidHex, deviceUuid, "Kartu Terdeteksi!")
     }
 
-    fun onQrDetected(uidStr: String, deviceUuid: String, onResult: ((Boolean, String) -> Unit)? = null) {
-        if (isSending) return
+    fun onQrDetected(uidStr: String, deviceUuid: String) {
+        if (isSending || isValidating) return
 
-        rfidUid = uidStr
-        nfcStatus = "QR Code Terbaca!"
-        lastScanSuccess = null
-        lastScanResult = null
-        resetHandler.removeCallbacks(resetRunnable)
-        kirimDataScan(uidStr, deviceUuid, onResult)
+        if (rfidUid.isNotEmpty()) {
+            if (lastScanSuccess == true && rfidUid == uidStr) {
+                lastScanSuccess = false
+                lastScanResult = null
+                nfcStatus = "Kompartemen ini sudah discan"
+                resetHandler.removeCallbacks(resetRunnable)
+                resetHandler.postDelayed(resetRunnable, 6000)
+            }
+
+            return
+        }
+
+        validateBeforeModal(uidStr, deviceUuid, "QR Code Terbaca!")
     }
 
-    private fun kirimDataScan(uid: String, deviceUuid: String, onResult: ((Boolean, String) -> Unit)?) {
+    private fun validateBeforeModal(uid: String, deviceUuid: String, detectedMessage: String) {
+        if (isSending || isValidating || rfidUid.isNotEmpty() || rejectedUid == uid) return
+
+        isValidating = true
+        nfcStatus = "Memeriksa UID..."
+        repository.validateCompartment(uid, deviceUuid) { isValid, message ->
+            isValidating = false
+
+            if (!isValid) {
+                rejectedUid = uid
+                lastScanSuccess = false
+                lastScanResult = null
+                nfcStatus = message
+                resetHandler.removeCallbacks(resetRunnable)
+                resetHandler.postDelayed(resetRunnable, 6000)
+                return@validateCompartment
+            }
+
+            rejectedUid = null
+            rfidUid = uid
+            nfcStatus = detectedMessage
+            lastScanSuccess = null
+            lastScanResult = null
+            resetHandler.removeCallbacks(resetRunnable)
+        }
+    }
+
+    fun submitScan(deviceUuid: String, onResult: ((Boolean, String) -> Unit)? = null) {
+        val uid = rfidUid
+        val selectedContentStatus = contentStatus
+
+        if (uid.isEmpty() || selectedContentStatus.isNullOrEmpty() || isSending) return
+
         isSending = true
 
         repository.sendScanData(
             deviceUuid = deviceUuid,
             rfidUid = uid,
+            contentStatus = selectedContentStatus,
+            note = note.trim().ifEmpty { null },
             latitude = latitude,
             longitude = longitude
         ) { success, message, scanResponse ->
@@ -102,7 +142,7 @@ class ScanViewModel(private val repository: ScanRepository) : ViewModel() {
             } else {
                 lastScanSuccess = false
                 lastScanResult = null
-                nfcStatus = "Scan Gagal"
+                nfcStatus = message
                 onResult?.invoke(false, message)
             }
 
@@ -114,6 +154,10 @@ class ScanViewModel(private val repository: ScanRepository) : ViewModel() {
     fun resetScanState() {
         nfcStatus = if (scanMode == ScanMode.NFC) "Tempelkan Kartu NFC" else "Arahkan Kamera ke QR Code"
         rfidUid = ""
+        rejectedUid = null
+        isValidating = false
+        contentStatus = null
+        note = ""
         lastScanSuccess = null
         lastScanResult = null
     }

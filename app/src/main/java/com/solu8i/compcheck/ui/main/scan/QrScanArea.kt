@@ -2,7 +2,6 @@ package com.solu8i.compcheck.ui.main.scan
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
@@ -157,9 +156,7 @@ fun QrScanArea(
                                                 val rawValue = barcode.rawValue
                                                 if (!rawValue.isNullOrBlank()) {
                                                     lastScanTimeMs = System.currentTimeMillis()
-                                                    viewModel.onQrDetected(rawValue, deviceUuid) { success, msg ->
-                                                        Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
-                                                    }
+                                                    viewModel.onQrDetected(rawValue, deviceUuid)
                                                     break
                                                 }
                                             }
@@ -233,8 +230,8 @@ fun QrScanArea(
             }
         }
 
-        // Duplicate Scanned Warning Banner if applicable
-        if (viewModel.nfcStatus.contains("sudah dilakukan scan")) {
+        // Duplicate or failed scan warning
+        if (viewModel.lastScanSuccess == false) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -252,7 +249,7 @@ fun QrScanArea(
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    text = "QR/Kompartemen ini sudah dilakukan scan sebelumnya (Tidak dimasukkan ke record)",
+                    text = viewModel.nfcStatus,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFFB45309)

@@ -2,6 +2,7 @@ package com.solu8i.compcheck.network
 
 import com.solu8i.compcheck.model.LoginRequest
 import com.solu8i.compcheck.model.LoginResponse
+import com.solu8i.compcheck.model.CompartmentValidationResponse
 import com.solu8i.compcheck.model.ScanHistoryResponse
 import com.solu8i.compcheck.model.ScanRequest
 import com.solu8i.compcheck.model.ScanResponse
@@ -21,6 +22,13 @@ interface ApiService {
     fun sendScanData(
         @Body request: ScanRequest
     ): Call<ScanResponse>
+
+    @GET("api/scan/validate-compartment")
+    fun validateCompartment(
+        @Query("rfid_uid") rfidUid: String,
+        @Query("driver_id") driverId: Int,
+        @Query("device_uuid") deviceUuid: String
+    ): Call<CompartmentValidationResponse>
 
     @GET("api/scan-history")
     fun getScanHistory(
